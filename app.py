@@ -20,13 +20,10 @@ def show():
 
     for doc in db.photos.find():
         doc.pop('_id') 
-        doc['url'] = f"{request.host}/img/{doc['uuid']}"
+        doc['url'] = f"{request.url_root}img/{doc['uuid']}"
         photos.append(doc)
         
     return jsonify(photos),200
-    # _items = db.photos.find()
-    # items = [item for item in _items]
-    # return dumps(items), 200
 
 @app.route('/photos/<photo_id>', methods=['GET'])
 def get(photo_id):
@@ -36,7 +33,7 @@ def get(photo_id):
         return jsonify({}), 404
     else:
         doc.pop('_id')
-        doc['url'] = f"{request.host}/img/{doc['uuid']}"
+        doc['url'] = f"{request.url_root}img/{doc['uuid']}"
         return jsonify(doc), 200
 
 
@@ -46,8 +43,8 @@ def update(photo_id):
     data = request.get_json()
     
     changes = {}
-    if 'name' in data:
-        changes['name'] = data['name'] 
+    if 'title' in data:
+        changes['title'] = data['title'] 
     if 'description' in data:
         changes['description'] = data['description']
 
@@ -61,21 +58,29 @@ def update(photo_id):
         return jsonify({}), 404
     else:
         doc.pop('_id')
-        doc['url'] = f"{request.host}/img/{doc['uuid']}"
+        doc['url'] = f"{request.url_root}img/{doc['uuid']}"
         return jsonify(doc), 200
 
 @app.route('/photos', methods=['POST'])
 def create():
 
+    data = request.get_json()
+    if 'title' not in data:
+        return jsonify({"msg":"title is necessary"}),400
+    if 'description' not in data:
+        return jsonify({"msg":"description is necessary"}),400
+    if 'base64' not in data:
+        return jsonify({"msg":"base64 is necessary"}),400
+
     doc = {
         'uuid': uuid.uuid4().hex,
-        'name': request.form['name'],
-        'description': request.form['description'],
-        'base64': request.form['base64']
+        'title' : data['title'] ,
+        'description' : data['description'],
+        'base64' : data['base64']
     }
     db.photos.insert_one(doc)
     doc.pop('_id')
-    doc['url'] = f"{request.host}/img/{doc['uuid']}"
+    doc['url'] = f"{request.url_root}img/{doc['uuid']}"
 
     imgdata = base64.b64decode(doc['base64'].split(",")[1])
     filename = doc['uuid'] + '.jpeg'
